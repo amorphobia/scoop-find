@@ -1,0 +1,26 @@
+[package]
+name = "scoop-find"
+version = "0.1.0"
+edition = "2021"
+description = "Find scoop apps"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/amorphobia/scoop-find"
+keywords = ["cli"]
+categories = ["command-line-utilities"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "1"
+anyhow = "1"
+serde_json = "1"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
+bin-dir = "{ bin }{ binary-ext }"
+
+[package.metadata.binstall.overrides.i686-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
