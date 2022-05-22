@@ -1,5 +1,6 @@
 use crate::errors::ScoopFindError;
 use anyhow::Result;
+use regex::Regex;
 use serde_json::{json, Value};
 use std::{
     env,
@@ -7,6 +8,9 @@ use std::{
     io::BufReader,
     path::{Path, PathBuf},
 };
+
+const USER_AGENT: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0";
 
 fn scoop_home() -> Result<PathBuf, ScoopFindError> {
     if let Some(scoop_home) = env::var_os("SCOOP")
@@ -65,8 +69,11 @@ fn contains_query<'json, 'q>(val: &'json Value, query: &'q str) -> Option<&'json
 
 pub fn find_manifests(bucket_path: &Path, query: &str) -> Result<Vec<(String, String, String)>> {
     let query = query.to_ascii_lowercase();
-    let manifests = bucket_path
-        .join("bucket")
+    let mut path = bucket_path.join("bucket");
+    if !path.is_dir() {
+        path.pop();
+    }
+    let manifests = path
         .read_dir()?
         .filter_map(|file| {
             if let Ok(file) = file {
@@ -160,4 +167,43 @@ pub fn print_result(result: &(String, Vec<(String, String, String)>)) {
         }
     }
     println!();
+}
+
+pub fn github_ratelimit_reached() -> Result<bool> {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent(USER_AGENT)
+        .build()?;
+
+    let root = client
+        .get("https://api.github.com/rate_limit")
+        .send()?
+        .json::<Value>()?;
+
+    if let Some(rate) = root.get("rate")
+        && let Some(remaining) = rate.get("remaining")
+            && let Value::Number(rem) = remaining
+                && let Some(rem) = rem.as_u64() && rem != 0 {
+        Ok(false)
+    } else {
+        Ok(true)
+    }
+}
+
+pub fn find_remote(bucket_uri: &'static str, query: &str) -> Result<Vec<String>> {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent(USER_AGENT)
+        .build()?;
+
+    let body = client.get(bucket_uri).send()?.text()?;
+
+    let reg_str = format!("\"bucket/(.*{}.*)\\.json\"", query);
+    let re = Regex::new(&reg_str)?;
+
+    let mut results = Vec::new();
+
+    for caps in re.captures_iter(&body) {
+        results.push(caps.get(1).unwrap().as_str().to_string());
+    }
+
+    Ok(results)
 }

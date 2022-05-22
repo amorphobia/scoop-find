@@ -2,7 +2,11 @@
 
 Find scoop apps
 
-A rust implementation of [`scoop-search`](https://github.com/shilangyu/scoop-search). This is a toy repository. It is recommended to use `scoop-search`.
+## About
+
+A rust implementation similar to [`scoop-search`](https://github.com/shilangyu/scoop-search). This is a toy repository. It is recommended to use `scoop-search`.
+
+*Non-goal*: 100% replicate of the original `scoop search`. Please use `scoop-search` instead.
 
 ## Installation
 
